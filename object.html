@@ -1,0 +1,151 @@
+<link href='https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/ui-lightness/jquery-ui.css' rel='stylesheet'>
+
+{% set sports =  crm_property_definition("programmes", "sport_tags") %}
+
+{% set sportsQuery = request.query_dict.sport_tags %}
+{% set locationQuery  = request.query_dict.location %}
+{% set dateQuery  = request.query_dict.date %}
+
+{% if sportsQuery %}
+    {% set query = query ~"&sport_tags=" ~ sportsQuery|urlencode %}
+{% endif %}
+
+{% if dateQuery %}
+    {% set query = query ~"&start_date=" ~ dateQuery  %}
+{% endif %}
+
+{% if locationQuery %}
+    {% set query = query ~"&loaction=" ~ locationQuery|urlencode %}
+{% endif %}
+
+{% set object = crm_objects('programmes', "type__in=ActiveSG School Holiday Programmes" ~ query  ) %}
+{% set batch_num = 9 %}
+
+{% if not request.query_dict.page_num %}
+   {% set page_num = 1 %}
+   {% set offset_num = 0 %}
+{% elif request.query_dict.page_num %}
+   {% set page_num = request.query_dict.page_num %}
+   {% set offset_num = page_num|add(-1) * batch_num %}
+{% endif %}
+
+{% set query = "orderBy=-start_date&type__in=ActiveSG School Holiday Programmes&limit=" ~ batch_num ~ "&offset=" ~ offset_num ~ query %}
+{% set total_pages = object.total|divide(batch_num)|round(0,"ceil") %}
+{% set more_pages = total_pages - page_num %}
+
+{% set programmes = crm_objects('programmes', query ,  'sport_tags,description_short,programme_title,programme_path,start_date,start_time,venue,thumbnail_image', "formating=true") %}
+
+<div class="filter_wrapper">
+   <h3>Filter</h3>
+   <form id="formProgFilter" class="formfilter flex-row justify-space-center  align-center" action="" data-hs-cf-bound="true">
+      <div class="row-items">
+         <fieldset class="fieldset">
+            <select class="input-xlarge chosen-select" id="sports" name="sport_tags">
+               <option value="">Choose Sport</option>
+               {% for sport in sports.options %}
+               <option value="{{ sport.value }}" >{{ sport.label }}</option>
+               {% endfor %}
+            </select>
+         </fieldset>
+         <fieldset class="fieldset">
+            <select class="input-xlarge chosen-select" id="location" name="location">
+               <option value="">Location</option>
+            </select>
+         </fieldset>
+         <fieldset class="fieldset">
+            <input type="hidden" id="date"  name="date">
+            <input type="text" id="my_date_picker" placeholder="Date">
+         </fieldset>
+         <div class="button_wrap">
+            <button type="submit" class="btn btn-filter-search buttons" id="search" title="Search">GO</button>
+         </div>
+      </div>
+   </form>
+</div>
+
+
+
+<div class="programmes_wrapper">
+   <div class="row_1"></div>
+   <div class="row_2">
+      <div class="items_group">
+         {% for item in programmes.results %}
+         <div class="item col-md-4">
+            <div class="item_inner">
+               {% if item.thumbnail_image %}
+               <div class="img">
+                  <img src="{{ item.thumbnail_image }}" alt="{{ item.programme_title }}">
+               </div>
+               {% endif %}
+               <div class="content">
+                  <div class="info-section">
+                     {% if item.start_date %}
+                     <div class="date">
+                        {{ item.start_date|format_date('long') }}
+                     </div>
+                     {% endif %}
+                     {% if item.sport_tags %}
+                     <div class="s_tags">
+                     {{ item.sport_tags }}   
+                     </div>
+                     {% endif %}
+                  </div>
+                  {% if item.programme_title %}<h5>{{ item.programme_title }}</h5>{% endif %}
+                  {% if item.description_short %}
+                  <div class="desc">
+                     {{ item.description_short }}
+                  </div>
+                  {% endif %}
+<!--                   <div>
+                     <a href="https://www.activesgcircle.gov.sg/things-to-do/programmes/{{ item.programme_path }}" class="button" >Read more</a>
+                  </div> -->
+               </div>
+            </div>
+         </div>
+         {% endfor %}
+      </div>
+   </div>
+</div>
+<div class="paginations">
+   <nav>
+      {% if page_num > 1 %}
+      <a class="previous-posts-link" href="{{ content.absolute_url }}?page_num={{ page_num|add(-1) }}" title="Previous">Previous</a>
+      {% endif %}
+
+      {% if more_pages == 0 %}
+      {% if page_num|add(-4) >= 1 -%} <a href="{{ content.absolute_url }}?page_num={{ page_num|add(-4) }}">{{ page_num|add(-4) }}</a>{%- endif %}
+      {% endif %}
+
+      {% if more_pages <= 1 %}
+      {% if page_num|add(-3) >= 1 %}<a href="{{ content.absolute_url }}?page_num={{ page_num|add(-3) }}">{{ page_num|add(-3) }}</a>{% endif %}
+      {% endif %}
+
+      {% if page_num|add(-2) >= 1 %} <a href="{{ content.absolute_url }}?page_num={{ page_num|add(-2) }}">{{ page_num|add(-2) }}</a>{% endif %}
+
+      {% if page_num|add(-1) >= 1 %}<a href="{{ content.absolute_url }}?page_num={{ page_num|add(-1) }}">{{ page_num|add(-1) }}</a>{% endif %}
+
+      <a class="active" href="{{ content.absolute_url }}?page_num={{ page_num }}">{{ page_num }}</a>
+
+      {% if page_num|add(1) <= total_pages %}<a href="{{ content.absolute_url }}?page_num={{ page_num|add(1) }}">{{ page_num|add(1) }}</a>{% endif %}
+
+      {% if page_num|add(2) <= total_pages %}<a href="{{ content.absolute_url }}?page_num={{ page_num|add(2) }}">{{ page_num|add(2) }}</a>{% endif %}
+
+      {% if page_num <= 2 %}
+      {% if page_num|add(3) <= total_pages %}<a href="{{ content.absolute_url }}?page_num={{ page_num|add(3) }}">{{ page_num|add(3) }}</a>{% endif %}
+      {% endif %}
+
+      {% if page_num == 1 %}
+      {% if page_num|add(4) <= total_pages %}<a href="{{ content.absolute_url }}?page_num={{ page_num|add(4) }}">{{ page_num|add(4) }}</a>{% endif %}
+      {% endif %}
+
+      {% if total_pages > page_num %}
+      <a class="next-posts-link" href="{{ content.absolute_url }}?page_num={{ page_num|add(1) }}" title="Older Posts">Next</a>
+      {% endif %}
+   </nav>
+</div>
+
+{% require_js %}
+<script>
+  
+</script>
+{% end_require_js %}
